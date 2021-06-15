@@ -1,6 +1,43 @@
+macro(gtest_set_libraries GTEST_LIB)
+
+  foreach(LIBRARY_FILE IN ITEMS ${${GTEST_LIB}_LIBRARIES})
+
+    if (${LIBRARY_FILE} STREQUAL "debug")
+      set(LAST_CONFIG "_DEBUG")
+    elseif(${LIBRARY_FILE} STREQUAL "optimized")
+      set(LAST_CONFIG "")
+    else()
+      if (NOT EXISTS ${${GTEST_LIB}_LIBRARY_${LAST_CONFIG}})
+        unset(${GTEST_LIB}_LIBRARY${LAST_CONFIG} CACHE)
+        set(${GTEST_LIB}_LIBRARY${LAST_CONFIG} ${LIBRARY_FILE} CACHE STRING "")
+      endif()
+    endif()
+    
+  endforeach()
+
+endmacro()
+
 function(find_required_library)
 
   find_package(GTest)
+
+  set_parent_scope(GTest_FOUND ${GTest_FOUND})
+
+  if (${GTest_FOUND} STREQUAL "TRUE")
+    gtest_set_libraries(GTEST)
+    gtest_set_libraries(GTEST_MAIN)
+
+    if (NOT EXISTS ${GTEST_INCLUDE_DIR})
+      set(TMP_INCLUDE_DIRS "")
+      foreach(TMP_INCLUDE_DIR IN ITEMS "${GTEST_INCLUDE_DIRS}")
+        message(STATUS "Test: ${TMP_INCLUDE_DIR}")
+        get_filename_component(TMP_INCLUDE_DIR ${TMP_INCLUDE_DIR} ABSOLUTE)
+        set(TMP_INCLUDE_DIRS ${TMP_INCLUDE_DIRS} ${TMP_INCLUDE_DIR})
+      endforeach()
+      unset(GTEST_INCLUDE_DIR CACHE)
+      set(GTEST_INCLUDE_DIR ${TMP_INCLUDE_DIRS} CACHE STRING "")
+    endif()
+  endif()
 
   if (NOT EXISTS ${GTEST_LIBRARY_DEBUG})
     if (EXISTS ${GTEST_LIBRARY})
@@ -49,45 +86,45 @@ endfunction()
 
 function(required_library_exists BOOL)
 
-  set(${BOOL} TRUE PARENT_SCOPE)
-  if (NOT EXISTS ${GTEST_INCLUDE_DIR})
-    set(${BOOL} FALSE PARENT_SCOPE)
-  endif()
-  if (NOT EXISTS ${GTEST_LIBRARY})
-    set(${BOOL} FALSE PARENT_SCOPE)
-  endif()
-  if (NOT EXISTS ${GTEST_LIBRARY_DEBUG})
-    set(${BOOL} FALSE PARENT_SCOPE)
-  endif()
-  if (NOT EXISTS ${GTEST_MAIN_LIBRARY})
-    set(${BOOL} FALSE PARENT_SCOPE)
-  endif()
-  if (NOT EXISTS ${GTEST_MAIN_LIBRARY_DEBUG})
-    set(${BOOL} FALSE PARENT_SCOPE)
-  endif()
+  set(${BOOL} ${GTest_FOUND} PARENT_SCOPE)
 
 endfunction()
 
 function(get_include_directories OUTPUT)
 
-  get_filename_component(TMP_INCLUDE_DIRECTORY ${GTEST_INCLUDE_DIR} ABSOLUTE)
-  set_parent_scope(${OUTPUT} ${TMP_INCLUDE_DIRECTORY})
+  if (DEFINED GTEST_INCLUDE_DIR)
+    set_parent_scope(${OUTPUT} ${GTEST_INCLUDE_DIR})
+  endif()
 
 endfunction()
 
+macro(add_gtest_library OUTPUT GTEST_LIB LIB_POSTFIX)
+
+  if (EXISTS ${${GTEST_LIB}_LIBRARY${LIB_POSTFIX}})
+    get_filename_component(TMP_GTEST_LIBRARY ${${GTEST_LIB}_LIBRARY${LIB_POSTFIX}} ABSOLUTE)
+  elseif(DEFINED ${GTEST_LIB}_LIBRARY${LIB_POSTFIX})
+    set(TMP_GTEST_LIBRARY ${${GTEST_LIB}_LIBRARY${LIB_POSTFIX}})
+  else()
+    set(TMP_GTEST_LIBRARY "")
+  endif()
+
+  set_parent_scope(${OUTPUT} ${${OUTPUT}} ${TMP_GTEST_LIBRARY})
+
+endmacro()
+
 function(get_library_files_debug OUTPUT)
 
-  get_filename_component(TMP_GTEST_LIBRARY_DEBUG ${GTEST_LIBRARY_DEBUG} ABSOLUTE)
-  get_filename_component(TMP_MAIN_LIBRARY_DEBUG ${GTEST_MAIN_LIBRARY_DEBUG} ABSOLUTE)
-  set_parent_scope(${OUTPUT} ${TMP_GTEST_LIBRARY_DEBUG} ${TMP_MAIN_LIBRARY_DEBUG})
+  set_parent_scope(${OUTPUT} "")
+  add_gtest_library(${OUTPUT} GTEST "_DEBUG")
+  add_gtest_library(${OUTPUT} GTEST_MAIN "_DEBUG")
 
 endfunction()
 
 function(get_library_files_release OUTPUT)
 
-  get_filename_component(TMP_GTEST_LIBRARY ${GTEST_LIBRARY} ABSOLUTE)
-  get_filename_component(TMP_MAIN_LIBRARY ${GTEST_MAIN_LIBRARY} ABSOLUTE)
-  set_parent_scope(${OUTPUT} ${TMP_GTEST_LIBRARY} ${TMP_MAIN_LIBRARY})
+  set_parent_scope(${OUTPUT} "")
+  add_gtest_library(${OUTPUT} GTEST "")
+  add_gtest_library(${OUTPUT} GTEST_MAIN "")
 
 endfunction()
 

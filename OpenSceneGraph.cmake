@@ -48,8 +48,10 @@ function(find_required_library)
 
   osg_fill_debug_files(LIBRARY ${ARGV})
 
-  if(NOT DEFINED OSG_PLUGINS_DIRECTORY)
-    set(OSG_PLUGINS_DIRECTORY "" CACHE STRING "")
+  if (MSVC)
+    if(NOT DEFINED OSG_PLUGINS_DIRECTORY)
+      set(OSG_PLUGINS_DIRECTORY "" CACHE STRING "")
+    endif()
   endif()
 
 endfunction()
