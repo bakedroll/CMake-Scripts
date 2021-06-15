@@ -68,6 +68,8 @@ macro(find_dependencies)
       function(find_required_library)
         find_package(${LIBRARY_NAME} COMPONENTS ${ARGV})
       endfunction()
+      function(find_required_binaries)
+      endfunction()
 
       include(${CMAKE_SCRIPTS_DIRECTORY}/${LIBRARY_NAME}.cmake)
     else()
@@ -75,6 +77,10 @@ macro(find_dependencies)
     endif()
 
     find_required_library(${LIBRARY_${LIBRARY_NAME}_MODULES})
+
+    if (MSVC)
+      find_required_binaries(${LIBRARY_${LIBRARY_NAME}_MODULES})
+    endif()
 
   endforeach()
 
@@ -122,7 +128,6 @@ function(check_dependencies)
       endif()
 
     endforeach()
-
 
   endforeach()
 
@@ -173,6 +178,8 @@ macro(make_projects_type PROJECTS PROJECT_TYPE)
         set(SOURCE_FILES ${SOURCE_FILES} ${PROJECT_${PROJECT_NAME}_SOURCE_DIR_${SOURCE_DIR}})
       endforeach()
 
+      message(STATUS "Generating project ${PROJECT_NAME}")
+
       if (${PROJECT_TYPE} STREQUAL "LIBRARY")
         add_library(${PROJECT_NAME} ${SOURCE_FILES})
       elseif(${PROJECT_TYPE} STREQUAL "EXECUTABLE")
@@ -209,12 +216,6 @@ macro(make_projects_type PROJECTS PROJECT_TYPE)
           get_library_files_debug(LIBRARY_FILES_DEBUG ${PROJECT_${PROJECT_NAME}_LIBRARY_${LIBRARY_NAME}_MODULES})
           get_library_files_release(LIBRARY_FILES_RELEASE ${PROJECT_${PROJECT_NAME}_LIBRARY_${LIBRARY_NAME}_MODULES})
 
-          #message(STATUS ${LIBRARY_NAME})
-          #message(STATUS PROJECT_${PROJECT_NAME}_LIBRARY_${LIBRARY_NAME}_MODULES)
-          #message(STATUS ${PROJECT_${PROJECT_NAME}_LIBRARY_${LIBRARY_NAME}_MODULES})
-          #message(STATUS ${LIBRARY_FILES_DEBUG})
-          #message(STATUS ${LIBRARY_FILES_RELEASE})
-
           if (DEFINED LIBRARY_FILES_DEBUG)
             target_link_libraries(${PROJECT_NAME} debug ${LIBRARY_FILES_DEBUG})
           endif()
@@ -241,6 +242,31 @@ macro(make_projects_type PROJECTS PROJECT_TYPE)
 
 endmacro()
 
+function(copy_binaries)
+
+  foreach (LIBRARY_NAME IN ITEMS ${REQUIRED_LIBRARIES})
+
+    if (EXISTS ${CMAKE_SCRIPTS_DIRECTORY}/${LIBRARY_NAME}.cmake)
+      function(get_binary_files OUTPUT)
+        set_parent_scope(${OUTPUT} "")
+      endfunction()
+
+      include(${CMAKE_SCRIPTS_DIRECTORY}/${LIBRARY_NAME}.cmake)
+
+      get_binary_files(BINARY_FILES ${LIBRARY_${LIBRARY_NAME}_MODULES})
+      if (DEFINED BINARY_FILES)
+        message(STATUS "Copying binaries for library ${LIBRARY_NAME}")
+        foreach(BINARY_FILE IN ITEMS ${BINARY_FILES})
+          get_filename_component(TMP_FILENAME ${BINARY_FILE} NAME)
+
+          configure_file(${BINARY_FILE} ${CMAKE_BINARY_DIR}/${PROJECT_BIN_DIR}/${TMP_FILENAME} COPYONLY)
+        endforeach()
+      endif()
+    endif()
+
+  endforeach()
+
+endfunction()
 
 function(make_projects)
 
@@ -250,5 +276,9 @@ function(make_projects)
 
   make_projects_type("${PROJECTS_LIBRARY}" LIBRARY)
   make_projects_type("${PROJECTS_EXECUTABLE}" EXECUTABLE)
+
+  if (MSVC)
+    copy_binaries()
+  endif()
 
 endfunction()
