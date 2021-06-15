@@ -34,6 +34,7 @@ endmacro()
 
 macro(require_library LIBRARY_NAME)
 
+  set(LIBRARY_MODULES "")
   if (${ARGC} GREATER 1)
     parse_args_require_library(${ARGN})
   endif()
@@ -82,6 +83,23 @@ endmacro()
 function(check_dependencies)
 
   foreach(PROJECT_NAME IN ITEMS ${ARGV})
+
+    # Check internal project dependencies
+    foreach(PROJECT_REQ_NAME IN ITEMS ${PROJECT_${PROJECT_NAME}_REQUIRED_PROJECTS})
+      list(FIND ARGV ${PROJECT_REQ_NAME} PROJECT_REQ_INDEX)
+      if (${PROJECT_REQ_INDEX} LESS 0)
+
+        if ("${PROJECT_${PROJECT_NAME}_OPTIONAL}" STREQUAL "TRUE")
+          set(PROJECTS_MISSING_OPTIONAL ${PROJECTS_MISSING_OPTIONAL} ${PROJECT_REQ_NAME})
+          set_parent_scope(EXCLUDED_PROJECTS ${EXCLUDED_PROJECTS} ${PROJECT_NAME})
+        else()
+          set(PROJECTS_MISSING ${PROJECTS_MISSING} ${PROJECT_REQ_NAME})
+        endif()
+
+      endif()
+    endforeach()
+
+    # Check library dependencies
     foreach(LIBRARY_NAME IN ITEMS ${PROJECT_${PROJECT_NAME}_REQUIRED_LIBRARIES})
 
       if (EXISTS ${CMAKE_SCRIPTS_DIRECTORY}/${LIBRARY_NAME}.cmake)
@@ -105,21 +123,32 @@ function(check_dependencies)
 
     endforeach()
 
-    
+
   endforeach()
 
   list(REMOVE_DUPLICATES LIBRARIES_MISSING)
   list(REMOVE_DUPLICATES LIBRARIES_MISSING_OPTIONAL)
+  list(REMOVE_DUPLICATES PROJECTS_MISSING)
+  list(REMOVE_DUPLICATES PROJECTS_MISSING_OPTIONAL)
   list(REMOVE_DUPLICATES EXCLUDED_PROJECTS)
 
   list(REMOVE_ITEM LIBRARIES_MISSING_OPTIONAL ${LIBRARIES_MISSING})
+  list(REMOVE_ITEM PROJECTS_MISSING_OPTIONAL ${PROJECTS_MISSING})
 
   foreach (LIB IN ITEMS ${LIBRARIES_MISSING})
     message(SEND_ERROR "Required dependency ${LIB} missing or incomplete")
   endforeach()
 
+  foreach (PROJ IN ITEMS ${PROJECTS_MISSING})
+    message(SEND_ERROR "Required project ${PROJ} missing")
+  endforeach()
+
   foreach (LIB IN ITEMS ${LIBRARIES_MISSING_OPTIONAL})
     message(WARNING "Optional dependency ${LIB} missing or incomplete")
+  endforeach()
+
+  foreach (PROJ IN ITEMS ${PROJECTS_MISSING_OPTIONAL})
+    message(WARNING "Optional project ${PROJ} missing")
   endforeach()
 
   foreach (PROJECT_NAME IN ITEMS ${EXCLUDED_PROJECTS})
@@ -157,11 +186,9 @@ macro(make_projects_type PROJECTS PROJECT_TYPE)
       endforeach()
 
       set_target_properties(${PROJECT_NAME} PROPERTIES DEBUG_POSTFIX "d")
-      #target_compile_options(${PROJECT_NAME} PRIVATE "-fpermissive")
 
       if (DEFINED PROJECT_${PROJECT_NAME}_INCLUDE_DIRECTORIES)
         target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_${PROJECT_NAME}_INCLUDE_DIRECTORIES})
-        #message(STATUS ${PROJECT_${PROJECT_NAME}_INCLUDE_DIRECTORIES})
       endif()
 
       foreach (LIBRARY_NAME IN ITEMS ${PROJECT_${PROJECT_NAME}_REQUIRED_LIBRARIES})
@@ -169,7 +196,45 @@ macro(make_projects_type PROJECTS PROJECT_TYPE)
 
         get_include_directories(INCLUDE_DIRECTORIES)
         target_include_directories(${PROJECT_NAME} PUBLIC ${INCLUDE_DIRECTORIES})
+
+        if(${PROJECT_TYPE} STREQUAL "EXECUTABLE")
+
+          if (NOT COMMAND get_library_files_debug)
+            message(FATAL_ERROR "Missing function get_library_files_debug() for library ${LIBRARY_NAME}")
+          endif()
+          if (NOT COMMAND get_library_files_release)
+            message(FATAL_ERROR "Missing function get_library_files_release() for library ${LIBRARY_NAME}")
+          endif()
+
+          get_library_files_debug(LIBRARY_FILES_DEBUG ${PROJECT_${PROJECT_NAME}_LIBRARY_${LIBRARY_NAME}_MODULES})
+          get_library_files_release(LIBRARY_FILES_RELEASE ${PROJECT_${PROJECT_NAME}_LIBRARY_${LIBRARY_NAME}_MODULES})
+
+          #message(STATUS ${LIBRARY_NAME})
+          #message(STATUS PROJECT_${PROJECT_NAME}_LIBRARY_${LIBRARY_NAME}_MODULES)
+          #message(STATUS ${PROJECT_${PROJECT_NAME}_LIBRARY_${LIBRARY_NAME}_MODULES})
+          #message(STATUS ${LIBRARY_FILES_DEBUG})
+          #message(STATUS ${LIBRARY_FILES_RELEASE})
+
+          if (DEFINED LIBRARY_FILES_DEBUG)
+            target_link_libraries(${PROJECT_NAME} debug ${LIBRARY_FILES_DEBUG})
+          endif()
+
+          if (DEFINED LIBRARY_FILES_RELEASE)
+            target_link_libraries(${PROJECT_NAME} optimized ${LIBRARY_FILES_RELEASE})
+          endif()
+        endif()
       endforeach()
+
+      foreach (PROJECT_REQ_NAME IN ITEMS ${PROJECT_${PROJECT_NAME}_REQUIRED_PROJECTS})
+        if (DEFINED PROJECT_${PROJECT_REQ_NAME}_INCLUDE_DIRECTORIES)
+          target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_${PROJECT_REQ_NAME}_INCLUDE_DIRECTORIES})
+        endif()
+
+        if(${PROJECT_TYPE} STREQUAL "EXECUTABLE")
+          target_link_libraries(${PROJECT_NAME} ${PROJECT_REQ_NAME})
+        endif()
+      endforeach()
+
 
     endif()
   endforeach()

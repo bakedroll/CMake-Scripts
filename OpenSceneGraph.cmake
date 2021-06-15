@@ -72,17 +72,40 @@ endfunction()
 function(get_include_directories OUTPUT)
 
   if (NOT "${ARGN}")
-    get_filename_component(TMP_INCLUDE_DIRECTORY ${OSG_INCLUDE_DIR} REALPATH)
+    get_filename_component(TMP_INCLUDE_DIRECTORY ${OSG_INCLUDE_DIR} ABSOLUTE)
     set_parent_scope(${OUTPUT} ${TMP_INCLUDE_DIRECTORY})
   else()
     set_parent_scope(${OUTPUT} "")
     foreach(MODULE IN ITEMS ${ARGN})
       string(TOUPPER ${MODULE} MODULE)
-      get_filename_component(TMP_INCLUDE_DIRECTORY ${${MODULE}_INCLUDE_DIR} REALPATH)
+      get_filename_component(TMP_INCLUDE_DIRECTORY ${${MODULE}_INCLUDE_DIR} ABSOLUTE)
       set_parent_scope(${OUTPUT} ${${OUTPUT}} ${TMP_INCLUDE_DIRECTORY})
     endforeach()
   endif()
 
   list(REMOVE_DUPLICATES ${OUTPUT})
+
+endfunction()
+
+macro(get_library_files_conf OUTPUT CONFIG)
+
+  set_parent_scope(${OUTPUT} "")
+  foreach(MODULE IN ITEMS ${ARGN})
+    string(TOUPPER ${MODULE} MODULE)
+    get_filename_component(TMP_LIBRARY_${CONFIG} ${${MODULE}_LIBRARY_${CONFIG}} ABSOLUTE)
+    set_parent_scope(${OUTPUT} ${${OUTPUT}} ${TMP_LIBRARY_${CONFIG}})
+  endforeach()
+
+endmacro()
+
+function(get_library_files_debug OUTPUT)
+
+  get_library_files_conf(${OUTPUT} DEBUG ${ARGN})
+
+endfunction()
+
+function(get_library_files_release OUTPUT)
+
+  get_library_files_conf(${OUTPUT} RELEASE ${ARGN})
 
 endfunction()

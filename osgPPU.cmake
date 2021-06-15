@@ -36,7 +36,21 @@ endfunction()
 
 function(get_include_directories OUTPUT)
 
-  get_filename_component(TMP_INCLUDE_DIRECTORY ${OSGPPU_INCLUDE_DIRECTORY} REALPATH)
+  get_filename_component(TMP_INCLUDE_DIRECTORY ${OSGPPU_INCLUDE_DIRECTORY} ABSOLUTE)
   set_parent_scope(${OUTPUT} ${TMP_INCLUDE_DIRECTORY})
+
+endfunction()
+
+function(get_library_files_debug OUTPUT)
+
+  get_filename_component(TMP_OSGPPU_LIBRARY_DEBUG ${OSGPPU_LIBRARY_DEBUG} ABSOLUTE)
+  set_parent_scope(${OUTPUT} ${TMP_OSGPPU_LIBRARY_DEBUG})
+
+endfunction()
+
+function(get_library_files_release OUTPUT)
+
+  get_filename_component(TMP_OSGPPU_LIBRARY_RELEASE ${OSGPPU_LIBRARY_RELEASE} ABSOLUTE)
+  set_parent_scope(${OUTPUT} ${TMP_OSGPPU_LIBRARY_RELEASE})
 
 endfunction()
