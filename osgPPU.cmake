@@ -19,6 +19,24 @@ function(find_required_library)
 
 endfunction()
 
+function(find_required_binaries)
+
+  if(NOT DEFINED OSGPPU_BINARY_RELEASE)
+    set(OSGPPU_BINARY_RELEASE "" CACHE STRING "")
+  endif()
+  if(NOT DEFINED OSGPPU_BINARY_DEBUG)
+    set(OSGPPU_BINARY_DEBUG "" CACHE STRING "")
+  endif()
+
+  if (NOT EXISTS ${OSGPPU_BINARY_DEBUG})
+    if (EXISTS ${OSGPPU_BINARY_RELEASE})
+      unset(OSGPPU_BINARY_DEBUG CACHE)
+      set(OSGPPU_BINARY_DEBUG ${OSGPPU_BINARY_RELEASE} CACHE STRING "")
+    endif()
+  endif()
+
+endfunction()
+
 function(required_library_exists BOOL)
 
   set(${BOOL} TRUE PARENT_SCOPE)
@@ -52,5 +70,19 @@ function(get_library_files_release OUTPUT)
 
   get_filename_component(TMP_OSGPPU_LIBRARY_RELEASE ${OSGPPU_LIBRARY_RELEASE} ABSOLUTE)
   set_parent_scope(${OUTPUT} ${TMP_OSGPPU_LIBRARY_RELEASE})
+
+endfunction()
+
+function(get_binary_files OUTPUT)
+
+  set_parent_scope(${OUTPUT} "")
+  if (EXISTS ${OSGPPU_BINARY_RELEASE})
+    get_filename_component(TMP_OSGPPU_BINARY_RELEASE ${OSGPPU_BINARY_RELEASE} ABSOLUTE)
+    set_parent_scope(${OUTPUT} ${${OUTPUT}} ${TMP_OSGPPU_BINARY_RELEASE})
+  endif()
+  if (EXISTS ${OSGPPU_BINARY_DEBUG})
+    get_filename_component(TMP_OSGPPU_BINARY_DEBUG ${OSGPPU_BINARY_DEBUG} ABSOLUTE)
+    set_parent_scope(${OUTPUT} ${${OUTPUT}} ${TMP_OSGPPU_BINARY_DEBUG})
+  endif()
 
 endfunction()
