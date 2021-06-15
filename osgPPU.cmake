@@ -36,6 +36,7 @@ endfunction()
 
 function(get_include_directories OUTPUT)
 
-  set_parent_scope(${OUTPUT} ${OSGPPU_INCLUDE_DIRECTORY})
+  get_filename_component(TMP_INCLUDE_DIRECTORY ${OSGPPU_INCLUDE_DIRECTORY} REALPATH)
+  set_parent_scope(${OUTPUT} ${TMP_INCLUDE_DIRECTORY})
 
 endfunction()

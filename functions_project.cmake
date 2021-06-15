@@ -51,6 +51,14 @@ macro(require_library LIBRARY_NAME)
 
 endmacro()
 
+macro(require_project PROJECT_NAME)
+
+  set_parent_scope(
+    PROJECT_${CURRENT_PROJECT_NAME}_REQUIRED_PROJECTS
+    ${PROJECT_${CURRENT_PROJECT_NAME}_REQUIRED_PROJECTS} ${PROJECT_NAME})
+
+endmacro()
+
 macro(find_dependencies)
 
   foreach (LIBRARY_NAME IN ITEMS ${REQUIRED_LIBRARIES})
@@ -96,6 +104,8 @@ function(check_dependencies)
       endif()
 
     endforeach()
+
+    
   endforeach()
 
   list(REMOVE_DUPLICATES LIBRARIES_MISSING)
