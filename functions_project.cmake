@@ -52,7 +52,23 @@ macro(require_library LIBRARY_NAME)
 
 endmacro()
 
+macro(parse_args_require_project ARG_TYPE)
+
+  if (${ARG_TYPE} STREQUAL "PATH")
+    set(REQUIRED_PROJECT_PATH ${ARGN})
+  endif()
+
+endmacro()
+
 macro(require_project PROJECT_NAME)
+
+  set(REQUIRED_PROJECT_PATH "")
+  if (${ARGC} GREATER 1)
+    parse_args_require_project(${ARGN})
+  endif()
+
+  set_parent_scope(REQUIRED_PROJECTS ${REQUIRED_PROJECTS} ${PROJECT_NAME})
+  set_parent_scope(REQUIRED_PROJECT_${PROJECT_NAME}_PATH ${REQUIRED_PROJECT_PATH})
 
   set_parent_scope(
     PROJECT_${CURRENT_PROJECT_NAME}_REQUIRED_PROJECTS
@@ -77,33 +93,36 @@ macro(find_required_projects)
   set(PROJECTS_DIRECTORY "" CACHE STRING "The directory where external projects are located")
 
   set(PROJECTS_TO_ADD "")
+  set(PROJECTS_REGISTERED ${ARGN})
 
-  foreach(PROJECT_NAME IN ITEMS ${ARGV})
-    foreach(PROJECT_REQ_NAME IN ITEMS ${PROJECT_${PROJECT_NAME}_REQUIRED_PROJECTS})
+  set(REQUIRED_PROJECTS_WO_FAILED ${REQUIRED_PROJECTS})
+  list(REMOVE_ITEM REQUIRED_PROJECTS_WO_FAILED ${PROJECTS_FAILED_TO_ADD})
 
-      list(FIND ARGV ${PROJECT_REQ_NAME} PROJECT_REQ_INDEX)
-      if (${PROJECT_REQ_INDEX} LESS 0)
+  foreach(PROJECT_REQ_NAME IN ITEMS ${REQUIRED_PROJECTS_WO_FAILED})
 
-        #message(STATUS ${PROJECT_REQ_NAME})
-        #message(STATUS ${CMAKE_CURRENT_BINARY_DIR})
+    list(FIND PROJECTS_REGISTERED ${PROJECT_REQ_NAME} PROJECT_REQ_INDEX)
 
-        set(PROJECTS_TO_ADD ${PROJECTS_TO_ADD} ${PROJECT_REQ_NAME})
+    if (${PROJECT_REQ_INDEX} LESS 0)
+      set(PROJECTS_TO_ADD ${PROJECTS_TO_ADD} ${PROJECT_REQ_NAME})
+    endif()
 
-      endif()
-
-    endforeach()
   endforeach()
 
+  set(PROJECTS_CHANGED "FALSE")
   foreach(PROJECT_TO_ADD IN ITEMS ${PROJECTS_TO_ADD})
 
-    message(STATUS ${PROJECT_TO_ADD})
-    message(STATUS ${CMAKE_CURRENT_BINARY_DIR})
-
-    if (EXISTS ${PROJECTS_DIRECTORY}/${PROJECT_TO_ADD}/CMakeLists.txt)
-      add_subdirectory(${PROJECTS_DIRECTORY}/${PROJECT_TO_ADD} ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_TO_ADD})
+    if (EXISTS ${PROJECTS_DIRECTORY}/${REQUIRED_PROJECT_${PROJECT_TO_ADD}_PATH}/${PROJECT_TO_ADD}/CMakeLists.txt)
+      set(PROJECTS_CHANGED "TRUE")
+      add_subdirectory(${PROJECTS_DIRECTORY}/${REQUIRED_PROJECT_${PROJECT_TO_ADD}_PATH}/${PROJECT_TO_ADD} ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_TO_ADD})
     else()
       message(WARNING
         "Could not find required project ${PROJECT_REQ_NAME}. Please make sure that PROJECTS_DIRECTORY is defined and contains the relevant projects.")
+    endif()
+
+    set(ALL_PROJECTS ${PROJECTS_LIBRARY} ${PROJECTS_EXECUTABLE})
+    list(FIND ALL_PROJECTS ${PROJECT_TO_ADD} PROJECT_ADDED_INDEX)
+    if (${PROJECT_ADDED_INDEX} LESS 0)
+      set(PROJECTS_FAILED_TO_ADD ${PROJECTS_FAILED_TO_ADD} ${PROJECT_TO_ADD})
     endif()
 
   endforeach()
@@ -243,6 +262,12 @@ macro(make_projects_type PROJECTS PROJECT_TYPE)
         add_library(${PROJECT_NAME} ${SOURCE_FILES})
       elseif(${PROJECT_TYPE} STREQUAL "EXECUTABLE")
         add_executable(${PROJECT_NAME} ${SOURCE_FILES})
+
+        if (WIN32)
+          if(NOT BUILD_ENABLE_CONSOLE)
+            set_property(TARGET ${PROJECT_NAME} PROPERTY WIN32_EXECUTABLE true)
+          endif()
+        endif()
       else()
         message(FATAL_ERROR "unexpected argument at make_projects_type")
       endif()
@@ -265,11 +290,20 @@ macro(make_projects_type PROJECTS PROJECT_TYPE)
       endif()
 
       foreach (LIBRARY_NAME IN ITEMS ${PROJECT_${PROJECT_NAME}_REQUIRED_LIBRARIES})
+        function(get_include_directories OUTPUT)
+          set_parent_scope(${OUTPUT} "")
+        endfunction()
+        function(get_library_files_debug OUTPUT)
+          set_parent_scope(${OUTPUT} "")
+        endfunction()
+
         include(${CMAKE_SCRIPTS_DIRECTORY}/${LIBRARY_NAME}.cmake)
 
         get_include_directories(INCLUDE_DIRECTORIES ${PROJECT_${PROJECT_NAME}_LIBRARY_${LIBRARY_NAME}_MODULES})
 
-        target_include_directories(${PROJECT_NAME} PUBLIC ${INCLUDE_DIRECTORIES})
+        if (DEFINED INCLUDE_DIRECTORIES)
+          target_include_directories(${PROJECT_NAME} PUBLIC ${INCLUDE_DIRECTORIES})
+        endif()
 
         if(${PROJECT_TYPE} STREQUAL "EXECUTABLE")
 
@@ -349,7 +383,11 @@ endfunction()
 
 macro(make_projects)
 
-  find_required_projects(${PROJECTS_LIBRARY} ${PROJECTS_EXECUTABLE})
+  set(PROJECTS_CHANGED "TRUE")
+  while (${PROJECTS_CHANGED} STREQUAL "TRUE")
+    find_required_projects(${PROJECTS_LIBRARY} ${PROJECTS_EXECUTABLE})
+  endwhile()
+
   find_dependencies()
 
   check_dependencies(${PROJECTS_LIBRARY} ${PROJECTS_EXECUTABLE})
