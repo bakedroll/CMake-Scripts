@@ -29,7 +29,7 @@ function(osg_fill_debug_files FILE_TYPE)
 
 endfunction()
 
-function(find_required_library)
+macro(find_required_library)
 
   find_package(OpenSceneGraph COMPONENTS ${ARGV})
 
@@ -54,7 +54,7 @@ function(find_required_library)
     endif()
   endif()
 
-endfunction()
+endmacro()
 
 function(find_required_binaries)
 

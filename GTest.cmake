@@ -17,11 +17,9 @@ macro(gtest_set_libraries GTEST_LIB)
 
 endmacro()
 
-function(find_required_library)
+macro(find_required_library)
 
   find_package(GTest)
-
-  set_parent_scope(GTest_FOUND ${GTest_FOUND})
 
   if (${GTest_FOUND} STREQUAL "TRUE")
     gtest_set_libraries(GTEST)
@@ -53,7 +51,7 @@ function(find_required_library)
     endif()
   endif()
 
-endfunction()
+endmacro()
 
 macro(find_required_binary BINARY_NAME BINARY_POSTFIX)
 

@@ -1,4 +1,4 @@
-function(find_required_library)
+macro(find_required_library)
 
   if(NOT DEFINED OSGPPU_INCLUDE_DIRECTORY)
     set(OSGPPU_INCLUDE_DIRECTORY "" CACHE STRING "")
@@ -17,7 +17,7 @@ function(find_required_library)
     endif()
   endif()
 
-endfunction()
+endmacro()
 
 function(find_required_binaries)
 

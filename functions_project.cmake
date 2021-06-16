@@ -60,16 +60,66 @@ macro(require_project PROJECT_NAME)
 
 endmacro()
 
+macro(enable_automoc)
+
+  set_parent_scope(PROJECT_${CURRENT_PROJECT_NAME}_AUTOMOC ON)
+
+endmacro()
+
+macro(enable_autorcc)
+
+  set_parent_scope(PROJECT_${CURRENT_PROJECT_NAME}_AUTORCC ON)
+
+endmacro()
+
+macro(find_required_projects)
+
+  set(PROJECTS_DIRECTORY "" CACHE STRING "The directory where external projects are located")
+
+  set(PROJECTS_TO_ADD "")
+
+  foreach(PROJECT_NAME IN ITEMS ${ARGV})
+    foreach(PROJECT_REQ_NAME IN ITEMS ${PROJECT_${PROJECT_NAME}_REQUIRED_PROJECTS})
+
+      list(FIND ARGV ${PROJECT_REQ_NAME} PROJECT_REQ_INDEX)
+      if (${PROJECT_REQ_INDEX} LESS 0)
+
+        #message(STATUS ${PROJECT_REQ_NAME})
+        #message(STATUS ${CMAKE_CURRENT_BINARY_DIR})
+
+        set(PROJECTS_TO_ADD ${PROJECTS_TO_ADD} ${PROJECT_REQ_NAME})
+
+      endif()
+
+    endforeach()
+  endforeach()
+
+  foreach(PROJECT_TO_ADD IN ITEMS ${PROJECTS_TO_ADD})
+
+    message(STATUS ${PROJECT_TO_ADD})
+    message(STATUS ${CMAKE_CURRENT_BINARY_DIR})
+
+    if (EXISTS ${PROJECTS_DIRECTORY}/${PROJECT_TO_ADD}/CMakeLists.txt)
+      add_subdirectory(${PROJECTS_DIRECTORY}/${PROJECT_TO_ADD} ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_TO_ADD})
+    else()
+      message(WARNING
+        "Could not find required project ${PROJECT_REQ_NAME}. Please make sure that PROJECTS_DIRECTORY is defined and contains the relevant projects.")
+    endif()
+
+  endforeach()
+
+endmacro()
+
 macro(find_dependencies)
 
   foreach (LIBRARY_NAME IN ITEMS ${REQUIRED_LIBRARIES})
 
     if (EXISTS ${CMAKE_SCRIPTS_DIRECTORY}/${LIBRARY_NAME}.cmake)
-      function(find_required_library)
+      macro(find_required_library)
         find_package(${LIBRARY_NAME} COMPONENTS ${ARGV})
-      endfunction()
-      function(find_required_binaries)
-      endfunction()
+      endmacro()
+      macro(find_required_binaries)
+      endmacro()
 
       include(${CMAKE_SCRIPTS_DIRECTORY}/${LIBRARY_NAME}.cmake)
     else()
@@ -180,12 +230,28 @@ macro(make_projects_type PROJECTS PROJECT_TYPE)
 
       message(STATUS "Generating project ${PROJECT_NAME}")
 
+      set(CMAKE_INCLUDE_CURRENT_DIR ON)
+
+      if (DEFINED PROJECT_${PROJECT_NAME}_AUTOMOC)
+        set(CMAKE_AUTOMOC ON)
+      endif()
+      if (DEFINED PROJECT_${PROJECT_NAME}_AUTORCC)
+        set(CMAKE_AUTORCC ON)
+      endif()
+
       if (${PROJECT_TYPE} STREQUAL "LIBRARY")
         add_library(${PROJECT_NAME} ${SOURCE_FILES})
       elseif(${PROJECT_TYPE} STREQUAL "EXECUTABLE")
         add_executable(${PROJECT_NAME} ${SOURCE_FILES})
       else()
         message(FATAL_ERROR "unexpected argument at make_projects_type")
+      endif()
+
+      if (DEFINED PROJECT_${PROJECT_NAME}_AUTOMOC)
+        foreach(CONFIGURATION_TYPE IN ITEMS ${CMAKE_CONFIGURATION_TYPES})
+          source_group(GeneratedFiles FILES
+            ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_autogen/mocs_compilation_${CONFIGURATION_TYPE}.cpp)
+        endforeach()
       endif()
 
       foreach (SOURCE_DIR IN ITEMS ${PROJECT_${PROJECT_NAME}_SOURCE_DIRECTORIES})
@@ -201,7 +267,8 @@ macro(make_projects_type PROJECTS PROJECT_TYPE)
       foreach (LIBRARY_NAME IN ITEMS ${PROJECT_${PROJECT_NAME}_REQUIRED_LIBRARIES})
         include(${CMAKE_SCRIPTS_DIRECTORY}/${LIBRARY_NAME}.cmake)
 
-        get_include_directories(INCLUDE_DIRECTORIES)
+        get_include_directories(INCLUDE_DIRECTORIES ${PROJECT_${PROJECT_NAME}_LIBRARY_${LIBRARY_NAME}_MODULES})
+
         target_include_directories(${PROJECT_NAME} PUBLIC ${INCLUDE_DIRECTORIES})
 
         if(${PROJECT_TYPE} STREQUAL "EXECUTABLE")
@@ -221,7 +288,11 @@ macro(make_projects_type PROJECTS PROJECT_TYPE)
           endif()
 
           if (DEFINED LIBRARY_FILES_RELEASE)
-            target_link_libraries(${PROJECT_NAME} optimized ${LIBRARY_FILES_RELEASE})
+            if (NOT DEFINED LIBRARY_FILES_DEBUG)
+              target_link_libraries(${PROJECT_NAME} ${LIBRARY_FILES_RELEASE})
+            else()
+              target_link_libraries(${PROJECT_NAME} optimized ${LIBRARY_FILES_RELEASE})
+            endif()
           endif()
         endif()
       endforeach()
@@ -236,6 +307,14 @@ macro(make_projects_type PROJECTS PROJECT_TYPE)
         endif()
       endforeach()
 
+      if (DEFINED PROJECT_${PROJECT_NAME}_AUTOMOC)
+        set(CMAKE_AUTOMOC OFF)
+      endif()
+      if (DEFINED PROJECT_${PROJECT_NAME}_AUTORCC)
+        set(CMAKE_AUTORCC OFF)
+      endif()
+
+      set(CMAKE_INCLUDE_CURRENT_DIR OFF)
 
     endif()
   endforeach()
@@ -268,8 +347,9 @@ function(copy_binaries)
 
 endfunction()
 
-function(make_projects)
+macro(make_projects)
 
+  find_required_projects(${PROJECTS_LIBRARY} ${PROJECTS_EXECUTABLE})
   find_dependencies()
 
   check_dependencies(${PROJECTS_LIBRARY} ${PROJECTS_EXECUTABLE})
@@ -281,4 +361,4 @@ function(make_projects)
     copy_binaries()
   endif()
 
-endfunction()
+endmacro()
