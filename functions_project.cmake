@@ -30,6 +30,8 @@ macro(begin_project PROJECT_NAME PROJECT_TYPE)
     set_parent_scope(PROJECT_${PROJECT_NAME}_OPTIONAL TRUE)
   endif()
 
+  set_parent_scope(PROJECT_${PROJECT_NAME}_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+
 endmacro()
 
 macro(require_library LIBRARY_NAME)
@@ -60,7 +62,13 @@ macro(parse_args_require_project ARG_TYPE)
 
 endmacro()
 
-macro(require_project PROJECT_NAME)
+function(add_project PROJECT_NAME)
+
+  add_required_project(${PROJECT_NAME} ${ARGN})
+
+endfunction()
+
+macro(add_required_project PROJECT_NAME)
 
   set(REQUIRED_PROJECT_PATH "")
   if (${ARGC} GREATER 1)
@@ -69,6 +77,20 @@ macro(require_project PROJECT_NAME)
 
   set_parent_scope(REQUIRED_PROJECTS ${REQUIRED_PROJECTS} ${PROJECT_NAME})
   set_parent_scope(REQUIRED_PROJECT_${PROJECT_NAME}_PATH ${REQUIRED_PROJECT_PATH})
+
+endmacro()
+
+macro(add_project_definitions)
+
+  set_parent_scope(
+    PROJECT_${CURRENT_PROJECT_NAME}_DEFINITIONS
+    ${PROJECT_${CURRENT_PROJECT_NAME}_DEFINITIONS} ${ARGN})
+
+endmacro()
+
+macro(require_project PROJECT_NAME)
+
+  add_required_project(${PROJECT_NAME} ${ARGN})
 
   set_parent_scope(
     PROJECT_${CURRENT_PROJECT_NAME}_REQUIRED_PROJECTS
@@ -272,8 +294,6 @@ macro(make_projects_type PROJECTS PROJECT_TYPE)
 
       message(STATUS "Generating project ${PROJECT_NAME}")
 
-      set(CMAKE_INCLUDE_CURRENT_DIR ON)
-
       if (DEFINED PROJECT_${PROJECT_NAME}_AUTOMOC)
         set(CMAKE_AUTOMOC ON)
       endif()
@@ -312,6 +332,12 @@ macro(make_projects_type PROJECTS PROJECT_TYPE)
 
       set_target_properties(${PROJECT_NAME} PROPERTIES DEBUG_POSTFIX "d")
 
+      if (DEFINED PROJECT_${PROJECT_NAME}_DEFINITIONS)
+        add_definitions(${PROJECT_${PROJECT_NAME}_DEFINITIONS})
+      endif()
+
+      target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_${PROJECT_NAME}_SOURCE_DIR})
+
       if (DEFINED PROJECT_${PROJECT_NAME}_INCLUDE_DIRECTORIES)
         target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_${PROJECT_NAME}_INCLUDE_DIRECTORIES})
       endif()
@@ -326,7 +352,7 @@ macro(make_projects_type PROJECTS PROJECT_TYPE)
 
         include(${CMAKE_SCRIPTS_DIRECTORY}/${LIBRARY_NAME}.cmake)
 
-        set(INCLUDE_DIRECTORIES "")
+        unset(INCLUDE_DIRECTORIES)
         get_include_directories(INCLUDE_DIRECTORIES ${PROJECT_${PROJECT_NAME}_LIBRARY_${LIBRARY_NAME}_MODULES})
 
         if (DEFINED INCLUDE_DIRECTORIES)
@@ -334,8 +360,8 @@ macro(make_projects_type PROJECTS PROJECT_TYPE)
         endif()
 
         if(${PROJECT_TYPE} STREQUAL "EXECUTABLE")
-          set(LIBRARY_FILES_DEBUG "")
-          set(LIBRARY_FILES_RELEASE "")
+          unset(LIBRARY_FILES_DEBUG)
+          unset(LIBRARY_FILES_RELEASE)
 
           get_library_files_debug(LIBRARY_FILES_DEBUG ${PROJECT_${PROJECT_NAME}_LIBRARY_${LIBRARY_NAME}_MODULES})
           get_library_files_release(LIBRARY_FILES_RELEASE ${PROJECT_${PROJECT_NAME}_LIBRARY_${LIBRARY_NAME}_MODULES})
@@ -348,10 +374,7 @@ macro(make_projects_type PROJECTS PROJECT_TYPE)
 
           if (DEFINED LIBRARY_FILES_RELEASE)
             if (NOT DEFINED LIBRARY_FILES_DEBUG)
-              foreach(LIBRARY_FILE IN ITEMS ${LIBRARY_FILES_RELEASE})
-                target_link_libraries(${PROJECT_NAME} optimized ${LIBRARY_FILE})
-                target_link_libraries(${PROJECT_NAME} debug ${LIBRARY_FILE})
-              endforeach()
+              target_link_libraries(${PROJECT_NAME} ${LIBRARY_FILES_RELEASE})
             else()
               foreach(LIBRARY_FILE IN ITEMS ${LIBRARY_FILES_RELEASE})
                 target_link_libraries(${PROJECT_NAME} optimized ${LIBRARY_FILE})
@@ -376,8 +399,6 @@ macro(make_projects_type PROJECTS PROJECT_TYPE)
         set(CMAKE_AUTORCC OFF)
       endif()
 
-      set(CMAKE_INCLUDE_CURRENT_DIR OFF)
-
     endif()
   endforeach()
 
@@ -393,7 +414,7 @@ function(copy_binaries)
 
       include(${CMAKE_SCRIPTS_DIRECTORY}/${LIBRARY_NAME}.cmake)
 
-      set(BINARY_FILES "")
+      unset(BINARY_FILES)
       get_binary_files(BINARY_FILES ${LIBRARY_${LIBRARY_NAME}_MODULES})
       if (DEFINED BINARY_FILES)
         message(STATUS "Copying binaries for library ${LIBRARY_NAME}")
@@ -426,5 +447,7 @@ macro(make_projects)
   if (MSVC)
     copy_binaries()
   endif()
+
+  configure_file(${CMAKE_SCRIPTS_DIRECTORY}/.clang-format ${CMAKE_BINARY_DIR}/.clang-format COPYONLY)
 
 endmacro()

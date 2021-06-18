@@ -31,6 +31,3 @@ endforeach(OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES)
 if (WIN32)
   option(BUILD_ENABLE_CONSOLE "Builds a console application (Windows only)" ON)
 endif()
-
-# Compiler flag for Qt that was built with -reduce-relocations
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
