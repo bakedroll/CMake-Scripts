@@ -103,6 +103,25 @@ macro(find_required_projects)
     list(FIND PROJECTS_REGISTERED ${PROJECT_REQ_NAME} PROJECT_REQ_INDEX)
 
     if (${PROJECT_REQ_INDEX} LESS 0)
+
+      # make required project optional if needed
+      set(MAKE_OPTIONAL "TRUE")
+      foreach(PROJECT_NAME IN ITEMS ${PROJECTS_REGISTERED})
+        if (DEFINED PROJECT_${PROJECT_NAME}_REQUIRED_PROJECTS)
+          list(FIND PROJECT_${PROJECT_NAME}_REQUIRED_PROJECTS ${PROJECT_REQ_NAME} PROJECT_REQ_INDEX_2)
+          if (${PROJECT_REQ_INDEX} GREATER_EQUAL 0)
+            if (NOT DEFINED PROJECT_${PROJECT_NAME}_OPTIONAL)
+              set(MAKE_OPTIONAL "FALSE")
+            endif()
+          endif()
+        endif()
+      endforeach()
+
+      if (${MAKE_OPTIONAL} STREQUAL "TRUE")
+        set(PROJECT_${PROJECT_REQ_NAME}_OPTIONAL "TRUE")
+      endif()
+      ###
+
       set(PROJECTS_TO_ADD ${PROJECTS_TO_ADD} ${PROJECT_REQ_NAME})
     endif()
 
@@ -247,6 +266,10 @@ macro(make_projects_type PROJECTS PROJECT_TYPE)
         set(SOURCE_FILES ${SOURCE_FILES} ${PROJECT_${PROJECT_NAME}_SOURCE_DIR_${SOURCE_DIR}})
       endforeach()
 
+      foreach (QRC_FILE IN ITEMS ${PROJECT_${PROJECT_NAME}_QRC_FILES})
+        set(SOURCE_FILES ${SOURCE_FILES} ${QRC_FILE})
+      endforeach()
+
       message(STATUS "Generating project ${PROJECT_NAME}")
 
       set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -283,6 +306,10 @@ macro(make_projects_type PROJECTS PROJECT_TYPE)
         source_group("${SOURCE_DIR}" FILES ${PROJECT_${PROJECT_NAME}_SOURCE_DIR_${SOURCE_DIR}})
       endforeach()
 
+      if (DEFINED PROJECT_${PROJECT_NAME}_QRC_FILES)
+        source_group(Resources FILES ${PROJECT_${PROJECT_NAME}_QRC_FILES})
+      endif()
+
       set_target_properties(${PROJECT_NAME} PROPERTIES DEBUG_POSTFIX "d")
 
       if (DEFINED PROJECT_${PROJECT_NAME}_INCLUDE_DIRECTORIES)
@@ -291,13 +318,10 @@ macro(make_projects_type PROJECTS PROJECT_TYPE)
 
       foreach (LIBRARY_NAME IN ITEMS ${PROJECT_${PROJECT_NAME}_REQUIRED_LIBRARIES})
         function(get_include_directories OUTPUT)
-          set_parent_scope(${OUTPUT} "")
         endfunction()
         function(get_library_files_debug OUTPUT)
-          set_parent_scope(${OUTPUT} "")
         endfunction()
         function(get_library_files_release OUTPUT)
-          set_parent_scope(${OUTPUT} "")
         endfunction()
 
         include(${CMAKE_SCRIPTS_DIRECTORY}/${LIBRARY_NAME}.cmake)
@@ -342,9 +366,7 @@ macro(make_projects_type PROJECTS PROJECT_TYPE)
           target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_${PROJECT_REQ_NAME}_INCLUDE_DIRECTORIES})
         endif()
 
-        if(${PROJECT_TYPE} STREQUAL "EXECUTABLE")
-          target_link_libraries(${PROJECT_NAME} ${PROJECT_REQ_NAME})
-        endif()
+        target_link_libraries(${PROJECT_NAME} ${PROJECT_REQ_NAME})
       endforeach()
 
       if (DEFINED PROJECT_${PROJECT_NAME}_AUTOMOC)
@@ -367,11 +389,11 @@ function(copy_binaries)
 
     if (EXISTS ${CMAKE_SCRIPTS_DIRECTORY}/${LIBRARY_NAME}.cmake)
       function(get_binary_files OUTPUT)
-        set_parent_scope(${OUTPUT} "")
       endfunction()
 
       include(${CMAKE_SCRIPTS_DIRECTORY}/${LIBRARY_NAME}.cmake)
 
+      set(BINARY_FILES "")
       get_binary_files(BINARY_FILES ${LIBRARY_${LIBRARY_NAME}_MODULES})
       if (DEFINED BINARY_FILES)
         message(STATUS "Copying binaries for library ${LIBRARY_NAME}")

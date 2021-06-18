@@ -56,7 +56,7 @@ macro(find_required_library)
 
 endmacro()
 
-function(find_required_binaries)
+macro(find_required_binaries)
 
   foreach(MODULE IN ITEMS ${ARGN})
 
@@ -75,7 +75,7 @@ function(find_required_binaries)
 
   osg_fill_debug_files(BINARY ${ARGN})
 
-endfunction()
+endmacro()
 
 function(required_library_exists BOOL)
 
@@ -122,7 +122,6 @@ endfunction()
 
 macro(get_library_files_conf OUTPUT CONFIG)
 
-  set_parent_scope(${OUTPUT} "")
   foreach(MODULE IN ITEMS ${ARGN})
     string(TOUPPER ${MODULE} MODULE)
     get_filename_component(TMP_LIBRARY_${CONFIG} ${${MODULE}_LIBRARY_${CONFIG}} ABSOLUTE)
@@ -145,7 +144,6 @@ endfunction()
 
 function(get_binary_files OUTPUT)
 
-  set_parent_scope(${OUTPUT} "")
   foreach(MODULE IN ITEMS ${ARGN})
 
     string(TOUPPER ${MODULE} MODULE_UPPER)

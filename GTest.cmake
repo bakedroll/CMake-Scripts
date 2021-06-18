@@ -73,14 +73,14 @@ macro(find_required_binary BINARY_NAME BINARY_POSTFIX)
 
 endmacro()
 
-function(find_required_binaries)
+macro(find_required_binaries)
 
   find_required_binary(GTEST "_DEBUG")
   find_required_binary(GTEST "")
   find_required_binary(GTEST_MAIN "_DEBUG")
   find_required_binary(GTEST_MAIN "")
 
-endfunction()
+endmacro()
 
 function(required_library_exists BOOL)
 
@@ -112,7 +112,6 @@ endmacro()
 
 function(get_library_files_debug OUTPUT)
 
-  set_parent_scope(${OUTPUT} "")
   add_gtest_library(${OUTPUT} GTEST "_DEBUG")
   add_gtest_library(${OUTPUT} GTEST_MAIN "_DEBUG")
 
@@ -120,7 +119,6 @@ endfunction()
 
 function(get_library_files_release OUTPUT)
 
-  set_parent_scope(${OUTPUT} "")
   add_gtest_library(${OUTPUT} GTEST "")
   add_gtest_library(${OUTPUT} GTEST_MAIN "")
 

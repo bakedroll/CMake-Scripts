@@ -56,3 +56,12 @@ macro(add_include_directory ADD_INCLUDE_DIRECTORY_NAME)
     ${CMAKE_CURRENT_SOURCE_DIR}/${ADD_INCLUDE_DIRECTORY_NAME})
 
 endmacro()
+
+macro(add_qrc_files)
+
+  set_parent_scope(
+    PROJECT_${CURRENT_PROJECT_NAME}_QRC_FILES
+    ${PROJECT_${CURRENT_PROJECT_NAME}_QRC_FILES}
+    ${ARGV})
+
+endmacro()

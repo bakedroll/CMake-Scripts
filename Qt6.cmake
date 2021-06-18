@@ -1,20 +1,17 @@
 macro(find_required_library)
 
+  # Compiler flag for Qt that was built with -reduce-relocations
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+
   set(QT_ROOT_DIRECTORY "" CACHE STRING "")
   if (EXISTS ${QT_ROOT_DIRECTORY})
     get_filename_component(TMP_QT_ROOT_DIRECTORY ${QT_ROOT_DIRECTORY} ABSOLUTE)
     set(CMAKE_PREFIX_PATH ${TMP_QT_ROOT_DIRECTORY})
   endif()
 
-  if (EXISTS ${CMAKE_PREFIX_PATH})
-    foreach(MODULE IN ITEMS ${ARGN})
-      find_package(Qt6${MODULE})
-
-      foreach(BINARY IN ITEMS ${Qt6${MODULE}_BINARIES})
-        message(STATUS "BIN: ${BINARY}")
-      endforeach()
-    endforeach()
-  endif()
+  foreach(MODULE IN ITEMS ${ARGN})
+    find_package(Qt6${MODULE})
+  endforeach()
 
 endmacro()
 
@@ -44,7 +41,6 @@ endfunction()
 
 function(get_include_directories OUTPUT)
 
-  set_parent_scope(${OUTPUT} "")
   foreach(MODULE IN ITEMS ${ARGN})
     foreach(INCLUDE_DIR IN ITEMS ${Qt6${MODULE}_INCLUDE_DIRS})
       get_filename_component(TMP_INCLUDE_DIRECTORY ${INCLUDE_DIR} ABSOLUTE)
@@ -58,7 +54,6 @@ endfunction()
 
 function(get_library_files_release OUTPUT)
 
-  set_parent_scope(${OUTPUT} "")
   foreach(MODULE IN ITEMS ${ARGN})
     set_parent_scope(${OUTPUT} ${${OUTPUT}} Qt6::${MODULE})
   endforeach()
@@ -67,7 +62,6 @@ endfunction()
 
 function(get_binary_files OUTPUT)
 
-  set_parent_scope(${OUTPUT} "")
   foreach(MODULE IN ITEMS ${ARGN})
     get_filename_component(TMP_BIN_RELEASE ${QT_ROOT_DIRECTORY}/bin/Qt6${MODULE}.dll ABSOLUTE)
     if (EXISTS ${TMP_BIN_RELEASE})
