@@ -314,8 +314,8 @@ macro(make_projects_type PROJECTS PROJECT_TYPE)
           get_filename_component(TS_FILE_PATH ${TS_FILE_NAME} DIRECTORY)
           set_source_files_properties(${TS_FILE_NAME} PROPERTIES OUTPUT_LOCATION ${TS_FILE_PATH})
         endforeach()
-        
-        qt_create_translation(QM_FILES ${PROJECT_${PROJECT_NAME}_TS_FILES})
+
+        qt_add_translation(QM_FILES ${PROJECT_${PROJECT_NAME}_TS_FILES})
       endif()
 
       if (DEFINED QM_FILES)
