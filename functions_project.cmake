@@ -310,7 +310,12 @@ macro(make_projects_type PROJECTS PROJECT_TYPE)
 
       unset(QM_FILES)
       if (DEFINED PROJECT_${PROJECT_NAME}_TS_FILES)
-        qt_add_translation(QM_FILES ${PROJECT_${PROJECT_NAME}_TS_FILES})
+        foreach (TS_FILE_NAME IN ITEMS ${PROJECT_${PROJECT_NAME}_TS_FILES})
+          get_filename_component(TS_FILE_PATH ${TS_FILE_NAME} DIRECTORY)
+          set_source_files_properties(${TS_FILE_NAME} PROPERTIES OUTPUT_LOCATION ${TS_FILE_PATH})
+        endforeach()
+        
+        qt_create_translation(QM_FILES ${PROJECT_${PROJECT_NAME}_TS_FILES})
       endif()
 
       if (DEFINED QM_FILES)
@@ -354,13 +359,26 @@ macro(make_projects_type PROJECTS PROJECT_TYPE)
         source_group(GeneratedFiles/translations FILES ${QM_FILES})
 
         if (DEFINED PROJECT_${PROJECT_NAME}_TRANSLATED_DIRECTORIES)
+          unset(TRANSLATED_DIRECTORIES)
+          foreach (TRANSLATED_DIR IN ITEMS ${PROJECT_${PROJECT_NAME}_TRANSLATED_DIRECTORIES})
+            set(TRANSLATED_DIRECTORIES ${TRANSLATED_DIRECTORIES} ${PROJECT_${PROJECT_NAME}_SOURCE_DIR}/${TRANSLATED_DIR})
+          endforeach()
+
+          if (WIN32)
+            set(LUPDATE_PATH ${QT_ROOT_DIRECTORY}/bin/lupdate)
+            set(LRELEASE_PATH ${QT_ROOT_DIRECTORY}/bin/lrelease)
+          else()
+            set(LUPDATE_PATH lupdate)
+            set(LRELEASE_PATH lrelease)
+          endif()
+
           add_custom_target(
             lupdate
-            COMMAND lupdate -I ${PROJECT_${PROJECT_NAME}_TRANSLATED_DIRECTORIES} -ts ${PROJECT_${PROJECT_NAME}_TS_FILES})
+            COMMAND ${LUPDATE_PATH} -I ${TRANSLATED_DIRECTORIES} -ts ${PROJECT_${PROJECT_NAME}_TS_FILES})
 
           add_custom_target(
             lrelease
-            COMMAND lrelease ${PROJECT_${PROJECT_NAME}_TS_FILES} -qm ${QM_FILES})
+            COMMAND ${LRELEASE_PATH} ${PROJECT_${PROJECT_NAME}_TS_FILES} -qm ${QM_FILES})
         endif()
       endif()
 
