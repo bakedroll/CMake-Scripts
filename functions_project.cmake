@@ -110,6 +110,12 @@ macro(enable_autorcc)
 
 endmacro()
 
+macro(enable_autouic)
+
+  set_parent_scope(PROJECT_${CURRENT_PROJECT_NAME}_AUTOUIC ON)
+
+endmacro()
+
 macro(find_required_projects)
 
   set(PROJECTS_DIRECTORY "" CACHE STRING "The directory where external projects are located")
@@ -174,16 +180,14 @@ macro(find_dependencies)
 
   foreach (LIBRARY_NAME IN ITEMS ${REQUIRED_LIBRARIES})
 
-    if (EXISTS ${CMAKE_SCRIPTS_DIRECTORY}/${LIBRARY_NAME}.cmake)
-      macro(find_required_library)
-        find_package(${LIBRARY_NAME} COMPONENTS ${ARGV})
-      endmacro()
-      macro(find_required_binaries)
-      endmacro()
+    macro(find_required_library)
+      find_package(${LIBRARY_NAME} COMPONENTS ${ARGV})
+    endmacro()
+    macro(find_required_binaries)
+    endmacro()
 
+    if (EXISTS ${CMAKE_SCRIPTS_DIRECTORY}/${LIBRARY_NAME}.cmake)
       include(${CMAKE_SCRIPTS_DIRECTORY}/${LIBRARY_NAME}.cmake)
-    else()
-      message(FATAL_ERROR "No script ${CMAKE_SCRIPTS_DIRECTORY}/${LIBRARY_NAME}.cmake provided")
     endif()
 
     find_required_library(${LIBRARY_${LIBRARY_NAME}_MODULES})
@@ -218,23 +222,23 @@ function(check_dependencies)
     # Check library dependencies
     foreach(LIBRARY_NAME IN ITEMS ${PROJECT_${PROJECT_NAME}_REQUIRED_LIBRARIES})
 
+      function(required_library_exists BOOL)
+        set(${BOOL} UNDEFINED PARENT_SCOPE)
+      endfunction()
+
       if (EXISTS ${CMAKE_SCRIPTS_DIRECTORY}/${LIBRARY_NAME}.cmake)
         include(${CMAKE_SCRIPTS_DIRECTORY}/${LIBRARY_NAME}.cmake)
       endif()
 
-      if (COMMAND required_library_exists)
-        required_library_exists(BOOL ${PROJECT_${PROJECT_NAME}_LIBRARY_${LIBRARY_NAME}_MODULES})
+      required_library_exists(BOOL ${PROJECT_${PROJECT_NAME}_LIBRARY_${LIBRARY_NAME}_MODULES})
 
-        if (${BOOL} STREQUAL "FALSE")
-          if ("${PROJECT_${PROJECT_NAME}_OPTIONAL}" STREQUAL "TRUE")
-            set(LIBRARIES_MISSING_OPTIONAL ${LIBRARIES_MISSING_OPTIONAL} ${LIBRARY_NAME})
-            set_parent_scope(EXCLUDED_PROJECTS ${EXCLUDED_PROJECTS} ${PROJECT_NAME})
-          else()
-            set(LIBRARIES_MISSING ${LIBRARIES_MISSING} ${LIBRARY_NAME})
-          endif()
+      if (${BOOL} STREQUAL "FALSE")
+        if ("${PROJECT_${PROJECT_NAME}_OPTIONAL}" STREQUAL "TRUE")
+          set(LIBRARIES_MISSING_OPTIONAL ${LIBRARIES_MISSING_OPTIONAL} ${LIBRARY_NAME})
+          set_parent_scope(EXCLUDED_PROJECTS ${EXCLUDED_PROJECTS} ${PROJECT_NAME})
+        else()
+          set(LIBRARIES_MISSING ${LIBRARIES_MISSING} ${LIBRARY_NAME})
         endif()
-      else()
-        message(FATAL_ERROR "Missing function required_library_exists() for library ${LIBRARY_NAME}")
       endif()
 
     endforeach()
@@ -300,6 +304,18 @@ macro(make_projects_type PROJECTS PROJECT_TYPE)
       if (DEFINED PROJECT_${PROJECT_NAME}_AUTORCC)
         set(CMAKE_AUTORCC ON)
       endif()
+      if (DEFINED PROJECT_${PROJECT_NAME}_AUTOUIC)
+        set(CMAKE_AUTOUIC ON)
+      endif()
+
+      unset(QM_FILES)
+      if (DEFINED PROJECT_${PROJECT_NAME}_TS_FILES)
+        qt_add_translation(QM_FILES ${PROJECT_${PROJECT_NAME}_TS_FILES})
+      endif()
+
+      if (DEFINED QM_FILES)
+        set(SOURCE_FILES ${SOURCE_FILES} ${QM_FILES})
+      endif()
 
       if (${PROJECT_TYPE} STREQUAL "LIBRARY")
         add_library(${PROJECT_NAME} ${SOURCE_FILES})
@@ -315,6 +331,10 @@ macro(make_projects_type PROJECTS PROJECT_TYPE)
         message(FATAL_ERROR "unexpected argument at make_projects_type")
       endif()
 
+      if (DEFINED PROJECT_${PROJECT_NAME}_UIC_DIRECTORIES)
+        set_property(TARGET ${PROJECT_NAME} APPEND PROPERTY AUTOUIC_SEARCH_PATHS ${PROJECT_${PROJECT_NAME}_UIC_DIRECTORIES})
+      endif()
+
       if (DEFINED PROJECT_${PROJECT_NAME}_AUTOMOC)
         foreach(CONFIGURATION_TYPE IN ITEMS ${CMAKE_CONFIGURATION_TYPES})
           source_group(GeneratedFiles FILES
@@ -328,6 +348,20 @@ macro(make_projects_type PROJECTS PROJECT_TYPE)
 
       if (DEFINED PROJECT_${PROJECT_NAME}_QRC_FILES)
         source_group(Resources FILES ${PROJECT_${PROJECT_NAME}_QRC_FILES})
+      endif()
+
+      if (DEFINED QM_FILES)
+        source_group(GeneratedFiles/translations FILES ${QM_FILES})
+
+        if (DEFINED PROJECT_${PROJECT_NAME}_TRANSLATED_DIRECTORIES)
+          add_custom_target(
+            lupdate
+            COMMAND lupdate -I ${PROJECT_${PROJECT_NAME}_TRANSLATED_DIRECTORIES} -ts ${PROJECT_${PROJECT_NAME}_TS_FILES})
+
+          add_custom_target(
+            lrelease
+            COMMAND lrelease ${PROJECT_${PROJECT_NAME}_TS_FILES} -qm ${QM_FILES})
+        endif()
       endif()
 
       set_target_properties(${PROJECT_NAME} PROPERTIES DEBUG_POSTFIX "d")
@@ -350,7 +384,9 @@ macro(make_projects_type PROJECTS PROJECT_TYPE)
         function(get_library_files_release OUTPUT)
         endfunction()
 
-        include(${CMAKE_SCRIPTS_DIRECTORY}/${LIBRARY_NAME}.cmake)
+        if (EXISTS ${CMAKE_SCRIPTS_DIRECTORY}/${LIBRARY_NAME}.cmake)
+          include(${CMAKE_SCRIPTS_DIRECTORY}/${LIBRARY_NAME}.cmake)
+        endif()
 
         unset(INCLUDE_DIRECTORIES)
         get_include_directories(INCLUDE_DIRECTORIES ${PROJECT_${PROJECT_NAME}_LIBRARY_${LIBRARY_NAME}_MODULES})
@@ -397,6 +433,9 @@ macro(make_projects_type PROJECTS PROJECT_TYPE)
       endif()
       if (DEFINED PROJECT_${PROJECT_NAME}_AUTORCC)
         set(CMAKE_AUTORCC OFF)
+      endif()
+      if (DEFINED PROJECT_${PROJECT_NAME}_AUTOUIC)
+        set(CMAKE_AUTORUIC OFF)
       endif()
 
     endif()
