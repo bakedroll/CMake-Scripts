@@ -118,7 +118,8 @@ endmacro()
 
 macro(find_required_projects)
 
-  set(PROJECTS_DIRECTORY "" CACHE STRING "The directory where external projects are located")
+  get_filename_component(CMAKE_SCRIPTS_PARENT_DIR ${CMAKE_SCRIPTS_DIRECTORY} DIRECTORY)
+  set(PROJECTS_DIRECTORY ${CMAKE_SCRIPTS_PARENT_DIR} CACHE STRING "The directory where external projects are located")
 
   set(PROJECTS_TO_ADD "")
   set(PROJECTS_REGISTERED ${ARGN})
