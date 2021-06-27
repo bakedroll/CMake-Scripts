@@ -23,7 +23,7 @@ macro(begin_project PROJECT_NAME PROJECT_TYPE)
   elseif(${PROJECT_TYPE} STREQUAL "EXECUTABLE")
     set_parent_scope(PROJECTS_EXECUTABLE ${PROJECTS_EXECUTABLE} ${PROJECT_NAME})
   else()
-    message(FATAL_ERROR "unexpected argument at begin_project")
+    message(FATAL_ERROR "Unexpected argument at begin_project")
   endif()
 
   if ("${ARGN}" STREQUAL "OPTIONAL")
