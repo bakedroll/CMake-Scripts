@@ -116,6 +116,18 @@ macro(enable_autouic)
 
 endmacro()
 
+macro(enable_localized_languages)
+
+  set_parent_scope(PROJECT_${CURRENT_PROJECT_NAME}_LOCALIZED_LANGUAGES ${ARGV})
+
+endmacro()
+
+macro(set_ts_files_directory ARG_DIRECTORY)
+
+  set_parent_scope(PROJECT_${CURRENT_PROJECT_NAME}_TS_FILES_DIRECTORY ${ARG_DIRECTORY})
+
+endmacro()
+
 macro(find_required_projects)
 
   get_filename_component(CMAKE_SCRIPTS_PARENT_DIR ${CMAKE_SCRIPTS_DIRECTORY} DIRECTORY)
@@ -310,17 +322,46 @@ macro(make_projects_type PROJECTS PROJECT_TYPE)
       endif()
 
       unset(QM_FILES)
-      if (DEFINED PROJECT_${PROJECT_NAME}_TS_FILES)
-        foreach (TS_FILE_NAME IN ITEMS ${PROJECT_${PROJECT_NAME}_TS_FILES})
+      unset(TS_FILES_NEW)
+      unset(TS_FILES_OLD)
+
+      if (DEFINED PROJECT_${PROJECT_NAME}_LOCALIZED_LANGUAGES)
+
+        unset(TRANSLATED_DIRECTORIES)
+        foreach (TRANSLATED_DIR IN ITEMS ${PROJECT_${PROJECT_NAME}_TRANSLATED_DIRECTORIES})
+          set(TRANSLATED_DIRECTORIES ${TRANSLATED_DIRECTORIES} ${PROJECT_${PROJECT_NAME}_SOURCE_DIR}/${TRANSLATED_DIR})
+        endforeach()
+
+        set(TS_FILES_DIRECTORY ${PROJECT_${PROJECT_NAME}_SOURCE_DIR}/${PROJECT_${PROJECT_NAME}_TS_FILES_DIRECTORY})
+
+        foreach (LANGUAGE IN ITEMS ${PROJECT_${PROJECT_NAME}_LOCALIZED_LANGUAGES})
+          set(TS_FILE_PATH ${TS_FILES_DIRECTORY}/${PROJECT_NAME}_${LANGUAGE}.ts)
+          if (EXISTS ${TS_FILE_PATH})
+            set(TS_FILES_OLD ${TS_FILES_OLD} ${TS_FILE_PATH})
+          else()
+            set(TS_FILES_NEW ${TS_FILES_NEW} ${TS_FILE_PATH})
+          endif()
+        endforeach()
+
+        if (DEFINED TS_FILES_NEW)
+          qt_create_translation(QM_FILES ${TRANSLATED_DIRECTORIES} ${TS_FILES_NEW})
+        endif()
+
+        foreach (TS_FILE_NAME IN ITEMS ${TS_FILES_OLD} ${TS_FILES_NEW})
           get_filename_component(TS_FILE_PATH ${TS_FILE_NAME} DIRECTORY)
           set_source_files_properties(${TS_FILE_NAME} PROPERTIES OUTPUT_LOCATION ${TS_FILE_PATH})
         endforeach()
 
-        qt_add_translation(QM_FILES ${PROJECT_${PROJECT_NAME}_TS_FILES})
+        unset(QM_FILES)
+        qt_add_translation(QM_FILES ${TS_FILES_OLD} ${TS_FILES_NEW})
       endif()
 
       if (DEFINED QM_FILES)
         set(SOURCE_FILES ${SOURCE_FILES} ${QM_FILES})
+      endif()
+
+      if (DEFINED TS_FILES_OLD)
+        set(SOURCE_FILES ${SOURCE_FILES} ${TS_FILES_OLD})
       endif()
 
       if (${PROJECT_TYPE} STREQUAL "LIBRARY")
@@ -356,31 +397,12 @@ macro(make_projects_type PROJECTS PROJECT_TYPE)
         source_group(Resources FILES ${PROJECT_${PROJECT_NAME}_QRC_FILES})
       endif()
 
+      if (DEFINED TS_FILES_OLD AND DEFINED PROJECT_${PROJECT_NAME}_TS_FILES_DIRECTORY)
+        source_group(${PROJECT_${PROJECT_NAME}_TS_FILES_DIRECTORY} FILES ${TS_FILES_OLD})
+      endif()
+
       if (DEFINED QM_FILES)
-        source_group(GeneratedFiles/translations FILES ${QM_FILES})
-
-        if (DEFINED PROJECT_${PROJECT_NAME}_TRANSLATED_DIRECTORIES)
-          unset(TRANSLATED_DIRECTORIES)
-          foreach (TRANSLATED_DIR IN ITEMS ${PROJECT_${PROJECT_NAME}_TRANSLATED_DIRECTORIES})
-            set(TRANSLATED_DIRECTORIES ${TRANSLATED_DIRECTORIES} ${PROJECT_${PROJECT_NAME}_SOURCE_DIR}/${TRANSLATED_DIR})
-          endforeach()
-
-          if (WIN32)
-            set(LUPDATE_PATH ${QT_ROOT_DIRECTORY}/bin/lupdate)
-            set(LRELEASE_PATH ${QT_ROOT_DIRECTORY}/bin/lrelease)
-          else()
-            set(LUPDATE_PATH lupdate)
-            set(LRELEASE_PATH lrelease)
-          endif()
-
-          add_custom_target(
-            lupdate
-            COMMAND ${LUPDATE_PATH} -I ${TRANSLATED_DIRECTORIES} -ts ${PROJECT_${PROJECT_NAME}_TS_FILES})
-
-          add_custom_target(
-            lrelease
-            COMMAND ${LRELEASE_PATH} ${PROJECT_${PROJECT_NAME}_TS_FILES} -qm ${QM_FILES})
-        endif()
+        source_group(GeneratedFiles/${PROJECT_${PROJECT_NAME}_TS_FILES_DIRECTORY} FILES ${QM_FILES})
       endif()
 
       set_target_properties(${PROJECT_NAME} PROPERTIES DEBUG_POSTFIX "d")

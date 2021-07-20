@@ -81,16 +81,3 @@ macro(add_qrc_files)
   endforeach()
 
 endmacro()
-
-macro(add_ts_directory ADD_TS_DIRECTORY_NAME)
-  
-  set(ADD_TS_DIRECTORY_NAME_TMP "")
-  add_files(ADD_TS_DIRECTORY_NAME_TMP ${ADD_TS_DIRECTORY_NAME} "ts")
-  
-  add_project_source_dir(${CURRENT_PROJECT_NAME} UNTRANSLATED ${ADD_TS_DIRECTORY_NAME_TMP})
-
-  set_parent_scope(PROJECT_${CURRENT_PROJECT_NAME}_TS_FILES
-    ${PROJECT_${CURRENT_PROJECT_NAME}_TS_FILES}
-    ${ADD_TS_DIRECTORY_NAME_TMP})
-
-endmacro()
