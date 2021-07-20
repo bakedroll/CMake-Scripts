@@ -1,3 +1,9 @@
+if (WIN32)
+  set(LUPDATE_PATH ${QT_ROOT_DIRECTORY}/bin/lupdate)
+else()
+  set(LUPDATE_PATH lupdate)
+endif()
+
 macro(set_parent_scope VAR)
 
   set(${VAR} ${ARGN})
@@ -405,6 +411,16 @@ macro(make_projects_type PROJECTS PROJECT_TYPE)
         source_group(GeneratedFiles/${PROJECT_${PROJECT_NAME}_TS_FILES_DIRECTORY} FILES ${QM_FILES})
       endif()
 
+      if (DEFINED QM_FILES AND
+          DEFINED TS_FILES_OLD AND
+          DEFINED TRANSLATED_DIRECTORIES)
+
+          set(LUPDATE_COMMANDS ${LUPDATE_COMMANDS}
+              COMMAND ${LUPDATE_PATH} -I ${PROJECT_${PROJECT_NAME}_SOURCE_DIR} ${TRANSLATED_DIRECTORIES}
+                                      -ts ${TS_FILES_OLD} ${TS_FILES_NEW})
+
+      endif()
+
       set_target_properties(${PROJECT_NAME} PROPERTIES DEBUG_POSTFIX "d")
 
       if (DEFINED PROJECT_${PROJECT_NAME}_DEFINITIONS)
@@ -523,6 +539,10 @@ macro(make_projects)
 
   make_projects_type("${PROJECTS_LIBRARY}" LIBRARY)
   make_projects_type("${PROJECTS_EXECUTABLE}" EXECUTABLE)
+
+  if (DEFINED LUPDATE_COMMANDS)
+    add_custom_target(lupdate ${LUPDATE_COMMANDS})
+  endif()
 
   if (MSVC)
     copy_binaries()
