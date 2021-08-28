@@ -1,0 +1,72 @@
+macro(find_required_library)
+
+  set(FFFRAMEREADER_INCLUDE_DIRECTORY "" CACHE PATH "")
+  set(FFFRAMEREADER_LIBRARY "" CACHE PATH "")
+  set(FFFRAMEREADER_LIBRARY_DEBUG "" CACHE PATH "")
+  set(FFFRAMEREADER_BINARY "" CACHE PATH "")
+  set(FFFRAMEREADER_BINARY_DEBUG "" CACHE PATH "")
+
+  if (NOT EXISTS ${FFFRAMEREADER_LIBRARY_DEBUG})
+    if (EXISTS ${FFFRAMEREADER_LIBRARY})
+      unset(FFFRAMEREADER_LIBRARY_DEBUG CACHE)
+      set(FFFRAMEREADER_LIBRARY_DEBUG ${FFFRAMEREADER_LIBRARY} CACHE PATH "")
+    endif()
+  endif()
+
+  if (NOT EXISTS ${FFFRAMEREADER_BINARY_DEBUG})
+    if (EXISTS ${FFFRAMEREADER_BINARY})
+      unset(FFFRAMEREADER_BINARY_DEBUG CACHE)
+      set(FFFRAMEREADER_BINARY_DEBUG ${FFFRAMEREADER_BINARY} CACHE PATH "")
+    endif()
+  endif()
+
+endmacro()
+
+function(required_library_exists BOOL)
+
+  set(${BOOL} TRUE PARENT_SCOPE)
+  if (NOT EXISTS ${FFFRAMEREADER_LIBRARY_DEBUG})
+    set(${BOOL} FALSE PARENT_SCOPE)
+  endif()
+  if (NOT EXISTS ${FFFRAMEREADER_LIBRARY})
+    set(${BOOL} FALSE PARENT_SCOPE)
+  endif()
+  if (NOT EXISTS ${FFFRAMEREADER_INCLUDE_DIRECTORY})
+    set(${BOOL} FALSE PARENT_SCOPE)
+  endif()
+
+endfunction()
+
+function(get_include_directories OUTPUT)
+
+  get_filename_component(TMP_FFFRAMEREADER_INCLUDE_DIRECTORY ${FFFRAMEREADER_INCLUDE_DIRECTORY} ABSOLUTE)
+  set_parent_scope(${OUTPUT} ${TMP_FFFRAMEREADER_INCLUDE_DIRECTORY})
+
+endfunction()
+
+function(get_library_files_debug OUTPUT)
+
+  get_filename_component(TMP_FFFRAMEREADER_LIBRARY_DEBUG ${FFFRAMEREADER_LIBRARY_DEBUG} ABSOLUTE)
+  set_parent_scope(${OUTPUT} ${TMP_FFFRAMEREADER_LIBRARY_DEBUG})
+
+endfunction()
+
+function(get_library_files_release OUTPUT)
+
+  get_filename_component(TMP_FFFRAMEREADER_LIBRARY ${FFFRAMEREADER_LIBRARY} ABSOLUTE)
+  set_parent_scope(${OUTPUT} ${TMP_FFFRAMEREADER_LIBRARY})
+
+endfunction()
+
+function(get_binary_files OUTPUT)
+
+  set(FFFRAMEREADER_BINARY_FILES
+    ${FFFRAMEREADER_BINARY}
+    ${FFFRAMEREADER_BINARY_DEBUG})
+
+  foreach(BIN_FILE IN ITEMS ${FFFRAMEREADER_BINARY_FILES})
+    get_filename_component(TMP_BIN_FILE ${BIN_FILE} ABSOLUTE)
+    set_parent_scope(${OUTPUT} ${${OUTPUT}} ${TMP_BIN_FILE})
+  endforeach()
+
+endfunction()
