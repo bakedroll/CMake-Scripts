@@ -28,6 +28,8 @@ macro(begin_project PROJECT_NAME PROJECT_TYPE)
     set_parent_scope(PROJECTS_LIBRARY ${PROJECTS_LIBRARY} ${PROJECT_NAME})
   elseif(${PROJECT_TYPE} STREQUAL "EXECUTABLE")
     set_parent_scope(PROJECTS_EXECUTABLE ${PROJECTS_EXECUTABLE} ${PROJECT_NAME})
+  elseif(${PROJECT_TYPE} STREQUAL "INTERFACE")
+    set_parent_scope(PROJECTS_INTERFACE ${PROJECTS_INTERFACE} ${PROJECT_NAME})
   else()
     message(FATAL_ERROR "Unexpected argument at begin_project")
   endif()
@@ -185,7 +187,7 @@ macro(find_required_projects)
         "Could not find required project ${PROJECT_REQ_NAME}. Please make sure that PROJECTS_DIRECTORY is defined and contains the relevant projects.")
     endif()
 
-    set(ALL_PROJECTS ${PROJECTS_LIBRARY} ${PROJECTS_EXECUTABLE})
+    set(ALL_PROJECTS ${PROJECTS_LIBRARY} ${PROJECTS_EXECUTABLE} ${PROJECTS_INTERFACE})
     list(FIND ALL_PROJECTS ${PROJECT_TO_ADD} PROJECT_ADDED_INDEX)
     if (${PROJECT_ADDED_INDEX} LESS 0)
       set(PROJECTS_FAILED_TO_ADD ${PROJECTS_FAILED_TO_ADD} ${PROJECT_TO_ADD})
@@ -380,6 +382,8 @@ macro(make_projects_type PROJECTS PROJECT_TYPE)
             set_property(TARGET ${PROJECT_NAME} PROPERTY WIN32_EXECUTABLE true)
           endif()
         endif()
+      elseif(${PROJECT_TYPE} STREQUAL "INTERFACE")
+        add_library(${PROJECT_NAME} INTERFACE ${SOURCE_FILES})
       else()
         message(FATAL_ERROR "unexpected argument at make_projects_type")
       endif()
@@ -427,10 +431,18 @@ macro(make_projects_type PROJECTS PROJECT_TYPE)
         add_definitions(${PROJECT_${PROJECT_NAME}_DEFINITIONS})
       endif()
 
-      target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_${PROJECT_NAME}_SOURCE_DIR})
+      if(${PROJECT_TYPE} STREQUAL "INTERFACE")
+        set(VISIBILITY_FLAG "INTERFACE")
+      else()
+        set(VISIBILITY_FLAG "PUBLIC")
+      endif()
+
+      target_include_directories(${PROJECT_NAME} ${VISIBILITY_FLAG}
+        ${PROJECT_${PROJECT_NAME}_SOURCE_DIR})
 
       if (DEFINED PROJECT_${PROJECT_NAME}_INCLUDE_DIRECTORIES)
-        target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_${PROJECT_NAME}_INCLUDE_DIRECTORIES})
+        target_include_directories(${PROJECT_NAME} ${VISIBILITY_FLAG}
+          ${PROJECT_${PROJECT_NAME}_INCLUDE_DIRECTORIES})
       endif()
 
       foreach (LIBRARY_NAME IN ITEMS ${PROJECT_${PROJECT_NAME}_REQUIRED_LIBRARIES})
@@ -449,7 +461,8 @@ macro(make_projects_type PROJECTS PROJECT_TYPE)
         get_include_directories(INCLUDE_DIRECTORIES ${PROJECT_${PROJECT_NAME}_LIBRARY_${LIBRARY_NAME}_MODULES})
 
         if (DEFINED INCLUDE_DIRECTORIES)
-          target_include_directories(${PROJECT_NAME} PUBLIC ${INCLUDE_DIRECTORIES})
+          target_include_directories(${PROJECT_NAME} ${VISIBILITY_FLAG}
+            ${INCLUDE_DIRECTORIES})
         endif()
 
         if(${PROJECT_TYPE} STREQUAL "EXECUTABLE")
@@ -479,7 +492,7 @@ macro(make_projects_type PROJECTS PROJECT_TYPE)
 
       foreach (PROJECT_REQ_NAME IN ITEMS ${PROJECT_${PROJECT_NAME}_REQUIRED_PROJECTS})
         if (DEFINED PROJECT_${PROJECT_REQ_NAME}_INCLUDE_DIRECTORIES)
-          target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_${PROJECT_REQ_NAME}_INCLUDE_DIRECTORIES})
+          target_include_directories(${PROJECT_NAME} ${VISIBILITY_FLAG} ${PROJECT_${PROJECT_REQ_NAME}_INCLUDE_DIRECTORIES})
         endif()
 
         target_link_libraries(${PROJECT_NAME} ${PROJECT_REQ_NAME})
@@ -530,15 +543,16 @@ macro(make_projects)
 
   set(PROJECTS_CHANGED "TRUE")
   while (${PROJECTS_CHANGED} STREQUAL "TRUE")
-    find_required_projects(${PROJECTS_LIBRARY} ${PROJECTS_EXECUTABLE})
+    find_required_projects(${PROJECTS_LIBRARY} ${PROJECTS_EXECUTABLE} ${PROJECTS_INTERFACE})
   endwhile()
 
   find_dependencies()
 
-  check_dependencies(${PROJECTS_LIBRARY} ${PROJECTS_EXECUTABLE})
+  check_dependencies(${PROJECTS_LIBRARY} ${PROJECTS_EXECUTABLE} ${PROJECTS_INTERFACE})
 
   make_projects_type("${PROJECTS_LIBRARY}" LIBRARY)
   make_projects_type("${PROJECTS_EXECUTABLE}" EXECUTABLE)
+  make_projects_type("${PROJECTS_INTERFACE}" INTERFACE)
 
   if (DEFINED LUPDATE_COMMANDS)
     add_custom_target(lupdate ${LUPDATE_COMMANDS})
