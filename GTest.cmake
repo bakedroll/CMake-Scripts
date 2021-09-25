@@ -127,7 +127,8 @@ endfunction()
 macro(add_binary_file OUTPUT BINARY_NAME BINARY_POSTFIX)
 
   if(EXISTS ${${BINARY_NAME}_BINARY${BINARY_POSTFIX}})
-    set_parent_scope(${OUTPUT} ${${OUTPUT}} ${${BINARY_NAME}_BINARY${BINARY_POSTFIX}})
+    get_filename_component(TMP_BINARY_FILE ${${BINARY_NAME}_BINARY${BINARY_POSTFIX}} ABSOLUTE)
+    set_parent_scope(${OUTPUT} ${${OUTPUT}} ${TMP_BINARY_FILE})
   endif()
 
 endmacro()
