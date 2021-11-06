@@ -89,7 +89,7 @@ endfunction()
 
 function(get_include_directories OUTPUT)
 
-  if (DEFINED GTEST_INCLUDE_DIR)
+  if (EXISTS ${GTEST_INCLUDE_DIR})
     get_filename_component(TMP_GTEST_INCLUDE_DIR ${GTEST_INCLUDE_DIR} ABSOLUTE)
     set_parent_scope(${OUTPUT} ${TMP_GTEST_INCLUDE_DIR})
   endif()
