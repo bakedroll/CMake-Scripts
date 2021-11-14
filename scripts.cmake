@@ -15,6 +15,8 @@ else()
   set(CMAKE_CXX_STANDARD 17)
 endif()
 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SCRIPTS_DIRECTORY}/Modules/")
+
 # update output directories, see http://stackoverflow.com/questions/7229571/cmake-visual-studio-debug-folder
 # First for the generic no-config case (e.g. with mingw)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${PROJECT_BIN_DIR})

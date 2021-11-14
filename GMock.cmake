@@ -1,2 +1,2 @@
-set(GOOGLETEST_MODULE_NAME GTest)
+set(GOOGLETEST_MODULE_NAME GMock)
 include(${CMAKE_SCRIPTS_DIRECTORY}/Googletest.cmake)
