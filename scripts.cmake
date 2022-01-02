@@ -15,7 +15,8 @@ else()
   set(CMAKE_CXX_STANDARD 17)
 endif()
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SCRIPTS_DIRECTORY}/Modules/")
+get_filename_component(TMP_CMAKE_SCRIPTS_DIRECTORY ${CMAKE_SCRIPTS_DIRECTORY} ABSOLUTE)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${TMP_CMAKE_SCRIPTS_DIRECTORY}/Modules/")
 
 # update output directories, see http://stackoverflow.com/questions/7229571/cmake-visual-studio-debug-folder
 # First for the generic no-config case (e.g. with mingw)
