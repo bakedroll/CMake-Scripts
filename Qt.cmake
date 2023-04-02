@@ -130,3 +130,50 @@ function(qt_copy_plugins)
   endforeach()
 
 endfunction()
+
+function(qt_copy_qml_binaries)
+
+  if (NOT EXISTS ${QT_ROOT_DIRECTORY})
+    return()
+  endif()
+
+  message(STATUS "Copying Qt qml binaries")
+
+  get_filename_component(TMP_QT_ROOT_DIRECTORY ${QT_ROOT_DIRECTORY} ABSOLUTE)
+
+  foreach(BINARY IN ITEMS ${ARGN})
+    copy_file_configuration(${TMP_QT_ROOT_DIRECTORY} qml/${BINARY} "")
+    copy_file_configuration(${TMP_QT_ROOT_DIRECTORY} qml/${BINARY} "d")
+
+    get_filename_component(CURRENT_QML_DIR ${BINARY} DIRECTORY)
+
+    if (EXISTS ${TMP_QT_ROOT_DIRECTORY}/qml/${CURRENT_QML_DIR}/plugins.qmltypes)
+      configure_file(
+        ${TMP_QT_ROOT_DIRECTORY}/qml/${CURRENT_QML_DIR}/plugins.qmltypes
+        ${CMAKE_BINARY_DIR}/${PROJECT_BIN_DIR}/qml/${CURRENT_QML_DIR}/plugins.qmltypes COPYONLY)
+    endif()
+    if (EXISTS ${TMP_QT_ROOT_DIRECTORY}/qml/${CURRENT_QML_DIR}/qmldir)
+      configure_file(
+        ${TMP_QT_ROOT_DIRECTORY}/qml/${CURRENT_QML_DIR}/qmldir
+        ${CMAKE_BINARY_DIR}/${PROJECT_BIN_DIR}/qml/${CURRENT_QML_DIR}/qmldir COPYONLY)
+    endif()
+  endforeach()
+
+endfunction()
+
+function(qt_copy_additional_binaries)
+
+  if (NOT EXISTS ${QT_ROOT_DIRECTORY})
+    return()
+  endif()
+
+  message(STATUS "Copying additional Qt binaries")
+
+  get_filename_component(TMP_QT_ROOT_DIRECTORY ${QT_ROOT_DIRECTORY} ABSOLUTE)
+
+  foreach(BINARY IN ITEMS ${ARGN})
+    copy_file_configuration(${TMP_QT_ROOT_DIRECTORY}/bin ${BINARY} "")
+    copy_file_configuration(${TMP_QT_ROOT_DIRECTORY}/bin ${BINARY} "d")
+  endforeach()
+
+endfunction()
