@@ -156,6 +156,14 @@ function(qt_copy_qml_binaries)
       configure_file(
         ${TMP_QT_ROOT_DIRECTORY}/qml/${CURRENT_QML_DIR}/qmldir
         ${CMAKE_BINARY_DIR}/${PROJECT_BIN_DIR}/qml/${CURRENT_QML_DIR}/qmldir COPYONLY)
+
+        file(GLOB QML_FILES ${TMP_QT_ROOT_DIRECTORY}/qml/${CURRENT_QML_DIR}/*.qml)
+        foreach (QML_FILE_PATH IN ITEMS ${QML_FILES})
+          get_filename_component(QML_FILE ${QML_FILE_PATH} NAME)
+          configure_file(
+            ${TMP_QT_ROOT_DIRECTORY}/qml/${CURRENT_QML_DIR}/${QML_FILE}
+            ${CMAKE_BINARY_DIR}/${PROJECT_BIN_DIR}/qml/${CURRENT_QML_DIR}/${QML_FILE} COPYONLY)
+        endforeach()
     endif()
   endforeach()
 
