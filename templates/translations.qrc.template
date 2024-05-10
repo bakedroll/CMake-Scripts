@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/${PROJECT_${PROJECT_NAME}_QM_DIRECTORY}">
+        ${QRC_GENERATED_QM_FILES}
+    </qresource>
+</RCC>

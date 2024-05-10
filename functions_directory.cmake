@@ -81,3 +81,20 @@ macro(add_qrc_files)
   endforeach()
 
 endmacro()
+
+macro(add_ts_files)
+
+  foreach(FILE_NAME IN ITEMS ${ARGN})
+    set_parent_scope(
+      PROJECT_${CURRENT_PROJECT_NAME}_TS_FILES
+      ${PROJECT_${CURRENT_PROJECT_NAME}_TS_FILES}
+      ${CMAKE_CURRENT_SOURCE_DIR}/${FILE_NAME})
+  endforeach()
+
+endmacro()
+
+macro(set_qm_directory QM_DIRECTORY)
+
+  set_parent_scope(PROJECT_${CURRENT_PROJECT_NAME}_QM_DIRECTORY ${QM_DIRECTORY})
+
+endmacro()

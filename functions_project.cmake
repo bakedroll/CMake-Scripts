@@ -304,6 +304,7 @@ endfunction()
 macro(make_projects_type PROJECTS PROJECT_TYPE)
 
   foreach (PROJECT_NAME IN ITEMS ${PROJECTS})
+    unset(GENERATED_QM_FILES)
 
     list(FIND EXCLUDED_PROJECTS ${PROJECT_NAME} EXCLUDED_PROJECT_INDEX)
     if (${EXCLUDED_PROJECT_INDEX} LESS 0)
@@ -316,6 +317,31 @@ macro(make_projects_type PROJECTS PROJECT_TYPE)
       foreach (QRC_FILE IN ITEMS ${PROJECT_${PROJECT_NAME}_QRC_FILES})
         set(SOURCE_FILES ${SOURCE_FILES} ${QRC_FILE})
       endforeach()
+
+      foreach (TS_FILE IN ITEMS ${PROJECT_${PROJECT_NAME}_TS_FILES})
+        if (DEFINED PROJECT_${PROJECT_NAME}_QM_DIRECTORY)
+          set_source_files_properties(${TS_FILE} PROPERTIES OUTPUT_LOCATION "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_${PROJECT_NAME}_QM_DIRECTORY}")
+        endif()
+
+        qt5_add_translation(GENERATED_QM_FILES ${TS_FILE})
+        set(SOURCE_FILES ${SOURCE_FILES} ${TS_FILE})
+      endforeach()
+
+      set(QRC_GENERATED_QM_FILES "")
+      foreach (QM_FILE IN ITEMS ${GENERATED_QM_FILES})
+        get_filename_component(QM_FILE_NAME ${QM_FILE} NAME)
+        set(QRC_GENERATED_QM_FILES "${QRC_GENERATED_QM_FILES}<file>${QM_FILE_NAME}</file>")
+      endforeach()
+
+      if (QRC_GENERATED_QM_FILES)
+        set(TRANSLATIONS_QRC "${CMAKE_BINARY_DIR}/${PROJECT_${PROJECT_NAME}_QM_DIRECTORY}/translations.qrc")
+        configure_file("${CMAKE_SCRIPTS_DIRECTORY}/templates/translations.qrc.template" "${TRANSLATIONS_QRC}")
+        source_group(GeneratedFiles FILES ${TRANSLATIONS_QRC})
+        set(SOURCE_FILES ${SOURCE_FILES} ${TRANSLATIONS_QRC})
+      endif()
+
+      source_group(GeneratedFiles FILES ${GENERATED_QM_FILES})
+      set(SOURCE_FILES ${SOURCE_FILES} ${GENERATED_QM_FILES})
 
       message(STATUS "Generating project ${PROJECT_NAME}")
 
@@ -405,6 +431,10 @@ macro(make_projects_type PROJECTS PROJECT_TYPE)
 
       if (DEFINED PROJECT_${PROJECT_NAME}_QRC_FILES)
         source_group(Resources FILES ${PROJECT_${PROJECT_NAME}_QRC_FILES})
+      endif()
+
+      if (DEFINED PROJECT_${PROJECT_NAME}_TS_FILES)
+        source_group(Translations FILES ${PROJECT_${PROJECT_NAME}_TS_FILES})
       endif()
 
       if (DEFINED TS_FILES_OLD AND DEFINED PROJECT_${PROJECT_NAME}_TS_FILES_DIRECTORY)
