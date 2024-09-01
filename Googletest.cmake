@@ -2,6 +2,7 @@ string(TOUPPER ${GOOGLETEST_MODULE_NAME} GOOGLETEST_MODULE_NAME_UPPER)
 
 macro(gtest_set_libraries LIB_NAME)
 
+  set(LAST_CONFIG "")
   foreach(LIBRARY_FILE IN ITEMS ${${LIB_NAME}_LIBRARIES})
 
     if (${LIBRARY_FILE} STREQUAL "debug")
@@ -9,7 +10,7 @@ macro(gtest_set_libraries LIB_NAME)
     elseif(${LIBRARY_FILE} STREQUAL "optimized")
       set(LAST_CONFIG "")
     else()
-      if (NOT EXISTS ${${LIB_NAME}_LIBRARY_${LAST_CONFIG}})
+      if (NOT EXISTS ${${LIB_NAME}_LIBRARY${LAST_CONFIG}})
         unset(${LIB_NAME}_LIBRARY${LAST_CONFIG} CACHE)
         set(${LIB_NAME}_LIBRARY${LAST_CONFIG} ${LIBRARY_FILE} CACHE STRING "")
       endif()
