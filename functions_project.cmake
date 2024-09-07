@@ -557,6 +557,7 @@ function(copy_binaries)
       include(${CMAKE_SCRIPTS_DIRECTORY}/${LIBRARY_NAME}.cmake)
 
       required_library_exists(BOOL ${LIBRARY_${LIBRARY_NAME}_MODULES})
+      string(TOUPPER ${BOOL} BOOL)
       if (${BOOL} STREQUAL "TRUE")
 
         unset(BINARY_FILES)
@@ -569,7 +570,7 @@ function(copy_binaries)
             configure_file(${BINARY_FILE} ${CMAKE_BINARY_DIR}/${PROJECT_BIN_DIR}/${TMP_FILENAME} COPYONLY)
           endforeach()
         endif()
-        
+
       endif()
     endif()
 
