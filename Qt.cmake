@@ -20,6 +20,10 @@ macro(find_required_library)
   if (${QT_REQUIRED_VERSION} STREQUAL "6")
     set(CMAKE_CXX_STANDARD 17)
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+    if (MSVC)
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:__cplusplus /permissive-")
+    endif()
   endif()
 
   foreach(MODULE IN ITEMS ${ARGN})
