@@ -589,6 +589,12 @@ macro(make_projects)
 
   check_dependencies(${PROJECTS_LIBRARY} ${PROJECTS_EXECUTABLE} ${PROJECTS_INTERFACE})
 
+  if (MSVC)
+    add_compile_options(/W4)
+  else()
+    add_compile_options(-Wall -Wextra -Wpedantic)
+  endif()
+
   make_projects_type("${PROJECTS_LIBRARY}" LIBRARY)
   make_projects_type("${PROJECTS_EXECUTABLE}" EXECUTABLE)
   make_projects_type("${PROJECTS_INTERFACE}" INTERFACE)
